@@ -1,10 +1,11 @@
 use fltk::{
     app,
     button::Button,
+    dialog::{FileDialog,FileDialogOptions,FileDialogType},
     group::{Flex, FlexType},
     input::Input,
     prelude::*,
-    text::TextDisplay,
+    text::{TextDisplay, TextBuffer},
     window::*,
 };
 
@@ -12,6 +13,7 @@ fn creategui() -> app::App {
     let app = app::App::default();
     let mut wind = Window::default().with_size(640, 400).with_label("Viewer");
     // Vertical is default. You can choose horizontal using pack.set_type(PackType::Horizontal);
+    
     let mut flex = Flex::default().size_of_parent().column();
     flex.set_type(FlexType::Column);
 
@@ -31,9 +33,17 @@ fn creategui() -> app::App {
     flex.set_size(&mut flex_r2, 30);
 
     let mut text_r3 = TextDisplay::default().with_size(300, 400);
- 
+    let buf = TextBuffer::default();
+    text_r3.set_buffer(Some(buf));
     flex.end();
-
+    but_path.set_callback(move |_|{
+        let mut dlg = FileDialog::new(FileDialogType::BrowseFile);
+        dlg.set_option(FileDialogOptions::SaveAsConfirm);
+        dlg.show();
+        if !dlg.filename().to_string_lossy().to_string().is_empty() {
+            text_r3.buffer().unwrap().append(&dlg.filename().to_string_lossy());
+        }
+    });
     wind.resizable(&flex);
     wind.end();
     wind.show();
@@ -42,6 +52,7 @@ fn creategui() -> app::App {
 
 fn main() {
     println!("Hello, world!");
-    let mut app = creategui();
+    let app = creategui();
+   
     app.run().unwrap();
 }
