@@ -13,6 +13,7 @@ use fltk::{
 #[derive(Copy, Clone)]
 pub enum Message {
     Open,
+    Search,
     Quit,
 }
 
@@ -55,6 +56,8 @@ impl TheApp {
 
         let mut flex_r2 = Flex::default().size_of_parent().row();
         let mut but_search = Button::default().with_size(10, 40).with_label("Search");
+        but_search.emit(send, Message::Search);
+
         let input_search = Input::default().with_size(300, 40);
         flex_r2.set_size(&mut but_search, 60);
         flex_r2.end();
@@ -94,7 +97,9 @@ impl TheApp {
                         if !filename.to_string_lossy().to_string().is_empty() {
                             if filename.exists() {
                                 match self.buf.load_file(&filename) {
-                                    Ok(_) => self.input_path.set_value(filename.to_str().unwrap()),
+                                    Ok(_) => {
+                                        self.input_path.set_value(filename.to_str().unwrap());
+                                    }
                                     Err(e) => dialog::alert(
                                         200,
                                         100,
@@ -109,10 +114,20 @@ impl TheApp {
                     Quit => {
                         self.app.quit();
                     }
+                    Search => {
+                        println!("{:?}",self.input_search.value());
+                        self.finder(&self.input_search.value());
+                    }
                 }
             }
         }
     }
+
+    fn finder(&mut self, key: &str) {
+        let res = self.buf.text().lines().filter(|line| line.contains(key)).map(|s|s.to_string()).collect::<Vec<String>>();
+        println!("{:?}",res);
+    }
+    
 }
 
 fn main() {
