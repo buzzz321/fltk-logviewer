@@ -1,14 +1,30 @@
 use fltk::{
     app,
     button::Button,
-    dialog::{self, FileDialog, FileDialogOptions, FileDialogType},
-    enums::Event,
+    dialog::{self, FileDialog},
+    enums::{self, Event},
     group::{Flex, FlexType},
     input::Input,
     prelude::*,
     text::{TextBuffer, TextDisplay},
     window::*,
 };
+use fltk_table::{SmartTable, TableOpts};
+
+#[derive(Debug)]
+struct Matches {
+    _col: usize,
+    row: usize,
+}
+
+impl Matches {
+    fn new(source_matches_col: usize, source_matches_row: usize) -> Self {
+        Self {
+            _col: source_matches_col,
+            row: source_matches_row,
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 pub enum Message {
@@ -27,6 +43,7 @@ pub struct TheApp {
     but_search: Button,
     input_path: Input,
     input_search: Input,
+    search_result: SmartTable,
 }
 
 impl TheApp {
@@ -66,6 +83,19 @@ impl TheApp {
         let mut text = TextDisplay::default().with_size(300, 400);
         let buf = TextBuffer::default();
         text.set_buffer(Some(buf.clone()));
+
+        let mut search_result = SmartTable::default()
+            .with_size(300, 400)
+            .with_opts(TableOpts {
+                rows: 3,
+                cols: 2,
+                editable: true,
+                ..Default::default()
+            });
+        search_result.set_col_header(false);
+        let col_width = search_result.col_width(0) + search_result.col_width(1) - 30;
+        search_result.set_col_width(1, wind.width() - col_width);
+
         flex.end();
 
         wind.resizable(&flex);
@@ -81,6 +111,7 @@ impl TheApp {
             but_search,
             input_path,
             input_search,
+            search_result,
         }
     }
     pub fn launch(&mut self) {
@@ -115,7 +146,7 @@ impl TheApp {
                         self.app.quit();
                     }
                     Search => {
-                        println!("{:?}",self.input_search.value());
+                        println!("{:?}", self.input_search.value());
                         self.finder(&self.input_search.value());
                     }
                 }
@@ -124,10 +155,16 @@ impl TheApp {
     }
 
     fn finder(&mut self, key: &str) {
-        let res = self.buf.text().lines().filter(|line| line.contains(key)).map(|s|s.to_string()).collect::<Vec<String>>();
-        println!("{:?}",res);
+        let res = self
+            .buf
+            .text()
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| line.contains(key))
+            .map(|(index, line)| Matches::new(line.find(key).unwrap(), index))
+            .collect::<Vec<Matches>>();
+        println!("{:?}", res);
     }
-    
 }
 
 fn main() {
