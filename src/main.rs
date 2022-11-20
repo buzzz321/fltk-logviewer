@@ -1,8 +1,8 @@
 use fltk::{
-    app,
+    app::{self},
     button::Button,
     dialog::{self, FileDialog},
-    enums::{self, Event},
+    enums::Event,
     group::{Flex, FlexType},
     input::Input,
     prelude::*,
@@ -13,15 +13,15 @@ use fltk_table::{SmartTable, TableOpts};
 
 #[derive(Debug)]
 struct Matches {
-    _col: usize,
-    row: usize,
+    line_start: usize,
+    _row: usize,
 }
 
 impl Matches {
     fn new(source_matches_col: usize, source_matches_row: usize) -> Self {
         Self {
-            _col: source_matches_col,
-            row: source_matches_row,
+            line_start: source_matches_col,
+            _row: source_matches_row,
         }
     }
 }
@@ -30,9 +30,10 @@ impl Matches {
 pub enum Message {
     Open,
     Search,
+    Resize,
     Quit,
 }
-
+#[allow(dead_code)]
 pub struct TheApp {
     app: app::App,
     wind: Window,
@@ -58,7 +59,9 @@ impl TheApp {
                 send.send(Message::Quit);
             }
         });
-
+        wind.resize_callback(move |_, _, _, _, _| {
+            send.send(Message::Resize);
+        });
         let mut flex = Flex::default().size_of_parent().column();
         flex.set_type(FlexType::Column);
 
@@ -87,7 +90,7 @@ impl TheApp {
         let mut search_result = SmartTable::default()
             .with_size(300, 400)
             .with_opts(TableOpts {
-                rows: 3,
+                rows: 1,
                 cols: 2,
                 editable: true,
                 ..Default::default()
@@ -101,6 +104,10 @@ impl TheApp {
         wind.resizable(&flex);
         wind.end();
         wind.show();
+        /*     wind.resize_callback(move |_win, x, _y, _w, h| {
+            search_result.set_col_width(1, x - col_width);
+        });
+        */
         Self {
             app,
             wind,
@@ -147,28 +154,75 @@ impl TheApp {
                     }
                     Search => {
                         println!("{:?}", self.input_search.value());
-                        self.finder(&self.input_search.value());
+                        let matches = self.finder(&self.input_search.value());
+                        for m in matches {
+                            let tmp: [&str; 2] = [
+                                "",
+                                &self
+                                    .buf
+                                    .line_text((m.line_start as i32).try_into().unwrap())[..],
+                            ];
+
+                            self.search_result
+                                .append_row(&m.line_start.to_string(), &tmp);
+                            println!("{:?}", m);
+                        }
+                    }
+                    Resize => {
+                        let col_width = self.search_result.col_width(0)
+                            + self.search_result.row_header_width()
+                            + 2;
+                        self.search_result
+                            .set_col_width(1, self.wind.width() - col_width);
                     }
                 }
             }
         }
     }
+    // find a key and return the line number it was found on.
+    /*   fn finder_line(&mut self, key: &str) -> Vec<Matches> {
+            let res = self
+                .buf
+                .text()
+                .lines()
+                .enumerate()
+                .filter(|(_, line)| line.contains(key))
+                .map(|(index, line)| Matches::new(line.find(key).unwrap(), index))
+                .collect::<Vec<Matches>>();
+            println!("{:?}", res);
+            res
+    }
+        */
+    //return all positions of a key
+    fn finder(&mut self, key: &str) -> Vec<Matches> {
+        let buf = &self.buf.text();
 
-    fn finder(&mut self, key: &str) {
-        let res = self
-            .buf
-            .text()
-            .lines()
-            .enumerate()
-            .filter(|(_, line)| line.contains(key))
-            .map(|(index, line)| Matches::new(line.find(key).unwrap(), index))
+        let res = buf
+            .match_indices(key)
+            .map(|(m, _)| Matches::new(m, 0))
             .collect::<Vec<Matches>>();
         println!("{:?}", res);
+        res
+    }
+
+    #[allow(dead_code)]
+    fn find_line(&mut self, line_no: i32) -> i32 {
+        let mut line: i32 = 0;
+        let mut pos: i32 = 0;
+        while line < line_no {
+            if let Some(next_pos) = self.buf.search_forward(pos, "\n", false) {
+                pos += next_pos;
+            } else {
+                break;
+            }
+
+            line += 1;
+        }
+        pos
     }
 }
 
 fn main() {
-    println!("Hello, world!");
     let mut app = TheApp::new(); //creategui();
 
     app.launch();
