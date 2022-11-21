@@ -155,17 +155,22 @@ impl TheApp {
                     Search => {
                         println!("{:?}", self.input_search.value());
                         let matches = self.finder(&self.input_search.value());
-                        for m in matches {
-                            let tmp: [&str; 2] = [
-                                "",
-                                &self
-                                    .buf
-                                    .line_text((m.line_start as i32).try_into().unwrap())[..],
-                            ];
+                        let mut line: String;
+                        let mut prev_line: String = "".to_string();
 
-                            self.search_result
-                                .append_row(&m.line_start.to_string(), &tmp);
-                            println!("{:?}", m);
+                        for m in matches {
+                            line = self
+                                .buf
+                                .line_text((m.line_start as i32).try_into().unwrap())[..]
+                                .to_string();
+                            if line != prev_line {
+                                let tmp: [&str; 2] = ["", &line];
+
+                                self.search_result
+                                    .append_row(&m.line_start.to_string(), &tmp);
+                                println!("{:?}", m);
+                            }
+                            prev_line = line;
                         }
                     }
                     Resize => {
