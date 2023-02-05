@@ -87,6 +87,7 @@ impl TheApp {
         let buf = TextBuffer::default();
         text.set_buffer(Some(buf.clone()));
 
+        let mut flex_r3 = Flex::default().size_of_parent().row();
         let mut search_result = SmartTable::default()
             .with_size(300, 400)
             .with_opts(TableOpts {
@@ -98,6 +99,8 @@ impl TheApp {
         search_result.set_col_header(false);
         let col_width = search_result.col_width(0) + search_result.col_width(1) - 30;
         search_result.set_col_width(1, wind.width() - col_width);
+        flex_r3.set_size(&mut text, 60);
+        flex.set_size(&mut flex_r3, 90);
 
         flex.end();
 
